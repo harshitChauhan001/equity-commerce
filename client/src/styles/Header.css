@@ -1,0 +1,223 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  height: var(--header-h);
+  background: rgba(15, 23, 42, 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  gap: 24px;
+}
+
+.header__left {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  flex: 1;
+}
+
+.header__logo-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.header__logo {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #a78bfa 0%, #6366f1 40%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+}
+
+.header__logo-dot {
+  width: 8px; height: 8px;
+  background: var(--primary-mid);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(99,102,241,0.7);
+}
+
+.header__nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header__nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.65);
+  text-decoration: none;
+  transition: color var(--t-base), background var(--t-base);
+  white-space: nowrap;
+}
+
+.header__nav-link:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.07);
+}
+
+.header__nav-link--admin {
+  color: #fbbf24;
+  background: rgba(251,191,36,0.08);
+}
+
+.header__nav-link--admin:hover {
+  color: #fde68a;
+  background: rgba(251,191,36,0.14);
+}
+
+/* Right side */
+.header__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Bank badge in header */
+.header__bank-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: rgba(99,102,241,0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99,102,241,0.25);
+}
+
+/* Cart button */
+.header__cart {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+  font-size: 1.2rem;
+  text-decoration: none;
+  transition: background var(--t-base), transform var(--t-fast);
+}
+
+.header__cart:hover {
+  background: rgba(255,255,255,0.12);
+  transform: scale(1.05);
+}
+
+.header__cart-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(15,23,42,0.97);
+  animation: pop 0.2s ease;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.5); }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* User info */
+.header__user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 6px;
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.header__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.header__user-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.header__user-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  white-space: nowrap;
+}
+
+.header__user-email {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.4);
+  white-space: nowrap;
+}
+
+/* Logout */
+.header__logout {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.2);
+  color: #fca5a5;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all var(--t-base);
+  white-space: nowrap;
+}
+
+.header__logout:hover {
+  background: rgba(239,68,68,0.2);
+  border-color: rgba(239,68,68,0.4);
+  color: #fff;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .header { padding: 0 16px; gap: 12px; }
+  .header__user-details { display: none; }
+  .header__bank-badge { display: none; }
+}
