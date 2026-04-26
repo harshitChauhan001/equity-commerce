@@ -1,5 +1,5 @@
 const sequelize = require('../db/sequelize');
-const { Product, Variant, CustomerPrice, Offer, User, Category } = require('../models');
+const { Product, Variant, CustomerPrice, Offer, User, Category, Segment, SegmentPrice } = require('../models');
 const logger = require('../utils/logger');
 
 const categories = [
@@ -97,10 +97,10 @@ async function seed() {
     const alice = await User.create({ name: 'Alice Johnson', email: 'alice@example.com', password: 'password123', bankCode: 'HDFC', role: 'admin' });
     const bob   = await User.create({ name: 'Bob Smith',     email: 'bob@example.com',   password: 'password123', bankCode: 'ICICI' });
     // Additional demo users
-    await User.create({ name: 'Priya Sharma',  email: 'priya@example.com',  password: 'password123', bankCode: 'SBI' });
-    await User.create({ name: 'Rahul Verma',   email: 'rahul@example.com',  password: 'password123', bankCode: 'AXIS' });
-    await User.create({ name: 'Sneha Patel',   email: 'sneha@example.com',  password: 'password123', bankCode: 'KOTAK' });
-    await User.create({ name: 'Arjun Mehta',   email: 'arjun@example.com',  password: 'password123' }); // no bank
+    const priya  = await User.create({ name: 'Priya Sharma',  email: 'priya@example.com',  password: 'password123', bankCode: 'SBI' });
+    const rahul  = await User.create({ name: 'Rahul Verma',   email: 'rahul@example.com',  password: 'password123', bankCode: 'AXIS' });
+    const sneha  = await User.create({ name: 'Sneha Patel',   email: 'sneha@example.com',  password: 'password123', bankCode: 'KOTAK' });
+    const arjun  = await User.create({ name: 'Arjun Mehta',   email: 'arjun@example.com',  password: 'password123' }); // no bank
 
     // Seed products + variants
     const createdProducts = [];
@@ -137,6 +137,47 @@ async function seed() {
       { variantId: tshirtVariants[1].id, customerId: alice.id, price: 399 },
       { variantId: shoeVariants[0].id, customerId: bob.id, price: 2499 },
       { variantId: shoeVariants[1].id, customerId: bob.id, price: 2499 },
+    ]);
+
+    // ── Segments ──────────────────────────────────────────────────────────────
+    const premiumSegment = await Segment.create({
+      name: 'PREMIUM',
+      description: 'Top-tier loyal customers — best prices across all categories',
+      priceMultiplier: 0.85, // 15% off base as fallback
+    });
+    const regularSegment = await Segment.create({
+      name: 'REGULAR',
+      description: 'Standard customers — base prices apply',
+      priceMultiplier: 1.0,
+    });
+    const newUserSegment = await Segment.create({
+      name: 'NEW_USER',
+      description: 'First-time customers — slight discount to encourage purchase',
+      priceMultiplier: 0.95, // 5% off base
+    });
+
+    // Assign users to segments
+    await alice.update({ segmentId: premiumSegment.id }); // admin + premium
+    await bob.update({ segmentId: premiumSegment.id });   // ICICI + premium
+    await priya.update({ segmentId: regularSegment.id });
+    await rahul.update({ segmentId: regularSegment.id });
+    await sneha.update({ segmentId: newUserSegment.id });
+    await arjun.update({ segmentId: newUserSegment.id });
+
+    // Explicit segment prices (override multiplier for specific variants)
+    const earbudVariants = createdProducts[2].dataValues.variants;  // Wireless Earbuds
+    const watchVariants  = createdProducts[3].dataValues.variants;  // Smart Watch
+
+    await SegmentPrice.bulkCreate([
+      // PREMIUM gets earbuds at ₹999 (vs ₹1499 base) and watches at ₹3999
+      { segmentId: premiumSegment.id, variantId: earbudVariants[0].id, price: 999 },
+      { segmentId: premiumSegment.id, variantId: earbudVariants[1].id, price: 999 },
+      { segmentId: premiumSegment.id, variantId: watchVariants[0].id,  price: 3999 },
+      { segmentId: premiumSegment.id, variantId: watchVariants[1].id,  price: 4499 },
+      { segmentId: premiumSegment.id, variantId: watchVariants[2].id,  price: 4499 },
+      // NEW_USER gets earbuds at ₹1299
+      { segmentId: newUserSegment.id, variantId: earbudVariants[0].id, price: 1299 },
+      { segmentId: newUserSegment.id, variantId: earbudVariants[1].id, price: 1299 },
     ]);
 
     // Seed offers

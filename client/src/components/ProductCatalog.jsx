@@ -121,16 +121,12 @@ function ProductCatalog() {
       ) : (
         <div className="catalog__grid">
           {filtered.map((product) => {
-            const minPrice = Math.min(
-              ...product.variants.map((v) => parseFloat(v.basePrice))
-            );
-            const maxPrice = Math.max(
-              ...product.variants.map((v) => parseFloat(v.basePrice))
-            );
+            const minBase = Math.min(...product.variants.map((v) => parseFloat(v.basePrice)));
+            const maxBase = Math.max(...product.variants.map((v) => parseFloat(v.basePrice)));
+            const minPersonalized = Math.min(...product.variants.map((v) => parseFloat(v.personalizedPrice ?? v.basePrice)));
+            const maxPersonalized = Math.max(...product.variants.map((v) => parseFloat(v.personalizedPrice ?? v.basePrice)));
+            const hasDiscount = minPersonalized < minBase;
             const totalStock = product.variants.reduce((s, v) => s + v.stock, 0);
-            const hasLowStock = product.variants.some(
-              (v) => v.stock > 0 && v.stock <= 5
-            );
             const imgFailed = imgErrors[product.id];
 
             return (
@@ -189,9 +185,19 @@ function ProductCatalog() {
                   </div>
                   <div className="card__footer">
                     <div className="card__price-range">
-                      <span className="card__price">₹{minPrice}</span>
-                      {minPrice !== maxPrice && (
-                        <span className="card__price-to"> – ₹{maxPrice}</span>
+                      {hasDiscount && (
+                        <span className="card__price-original">
+                          ₹{minBase}{minBase !== maxBase ? ` – ₹${maxBase}` : ''}
+                        </span>
+                      )}
+                      <span className="card__price">₹{minPersonalized}</span>
+                      {minPersonalized !== maxPersonalized && (
+                        <span className="card__price-to"> – ₹{maxPersonalized}</span>
+                      )}
+                      {hasDiscount && (
+                        <span className="card__price-badge">
+                          {Math.round((1 - minPersonalized / minBase) * 100)}% off
+                        </span>
                       )}
                     </div>
                     <span className="card__arrow">→</span>

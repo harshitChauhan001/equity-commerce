@@ -122,9 +122,10 @@
 
 .admin__form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 14px;
   margin-bottom: 16px;
+  align-items: end;
 }
 
 .admin__form-grid label {
@@ -142,12 +143,17 @@
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 0.9rem;
+  height: 38px;
+  box-sizing: border-box;
 }
 
 .admin__form-checkbox {
   flex-direction: row !important;
-  align-items: center;
+  align-items: center !important;
   gap: 8px !important;
+  padding-bottom: 6px;
+  font-size: 0.85rem !important;
+  cursor: pointer;
 }
 
 /* Tables */
@@ -326,3 +332,67 @@
 .admin__inv-stock--oos { color: #dc2626; }
 
 .admin__inv-actions { display: flex; gap: 6px; align-items: center; }
+
+/* ─── Segments Tab ───────────────────────────────────── */
+.admin__segments-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .admin__segments-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin__segments-sidebar {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.admin__segment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.admin__segment-card {
+  padding: 12px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.admin__segment-card:hover { border-color: #6366f1; background: #f8f7ff; }
+.admin__segment-card--active { border-color: #6366f1; background: #eef2ff; }
+
+.admin__segment-name { font-weight: 700; color: #1e1b4b; font-size: 0.95rem; }
+.admin__segment-meta { display: flex; gap: 6px; margin-top: 4px; }
+.admin__segment-desc { font-size: 0.78rem; color: #6b7280; margin-top: 4px; }
+
+.admin__segments-detail {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  min-height: 300px;
+}
+
+.admin__segments-detail h3 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #1e1b4b;
+  margin: 0 0 4px;
+}
+
+.admin__segments-detail h4 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #374151;
+  margin: 0;
+}

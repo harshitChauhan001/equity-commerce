@@ -7,6 +7,8 @@ const OrderItem     = require('./OrderItem');
 const User          = require('./User');
 const CartItem      = require('./CartItem');
 const Category      = require('./Category');
+const Segment       = require('./Segment');
+const SegmentPrice  = require('./SegmentPrice');
 
 // ── Associations ─────────────────────────────────────────────────────────────
 
@@ -50,8 +52,21 @@ CartItem.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Variant.hasMany(CartItem,   { foreignKey: 'variant_id', as: 'cartItems' });
 CartItem.belongsTo(Variant, { foreignKey: 'variant_id', as: 'variant' });
 
+// Segment  1 ──▶ N  User
+Segment.hasMany(User,    { foreignKey: 'segment_id', as: 'users' });
+User.belongsTo(Segment,  { foreignKey: 'segment_id', as: 'segment' });
+
+// Segment  1 ──▶ N  SegmentPrice
+Segment.hasMany(SegmentPrice,   { foreignKey: 'segment_id', as: 'prices' });
+SegmentPrice.belongsTo(Segment, { foreignKey: 'segment_id', as: 'segment' });
+
+// Variant  1 ──▶ N  SegmentPrice
+Variant.hasMany(SegmentPrice,   { foreignKey: 'variant_id', as: 'segmentPrices' });
+SegmentPrice.belongsTo(Variant, { foreignKey: 'variant_id', as: 'variant' });
+
 module.exports = {
   Product, Variant, CustomerPrice,
   Offer, Order, OrderItem,
   User, CartItem, Category,
+  Segment, SegmentPrice,
 };

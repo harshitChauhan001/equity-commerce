@@ -1,4 +1,4 @@
-const { Product, Variant, Order, Offer, User } = require('../models');
+const { Product, Variant, Order, OrderItem, Offer, User } = require('../models');
 const sequelize = require('../db/sequelize');
 const { ok } = require('../utils/response');
 
@@ -11,7 +11,7 @@ async function stats(req, res, next) {
         Product.count({ where: { active: true } }),
         Order.count({ where: { status: 'confirmed' } }),
         Order.findOne({
-          attributes: [[sequelize.fn('SUM', sequelize.col('final_price')), 'total']],
+          attributes: [[sequelize.fn('SUM', sequelize.col('total_amount')), 'total']],
           where: { status: 'confirmed' },
           raw: true,
         }),
@@ -36,11 +36,15 @@ async function getAllOrders(req, res, next) {
     const orders = await Order.findAll({
       include: [
         {
-          model: Variant,
-          as: 'variant',
-          include: [{ model: Product, as: 'product', attributes: ['id', 'name'] }],
+          model: OrderItem,
+          as: 'items',
+          include: [{
+            model: Variant,
+            as: 'variant',
+            include: [{ model: Product, as: 'product', attributes: ['id', 'name'] }],
+          }],
         },
-        { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
+        { model: User, as: 'customer', attributes: ['id', 'name', 'email'] },
         { model: Offer, as: 'offer', attributes: ['id', 'code', 'discountType', 'discountValue'] },
       ],
       order: [['createdAt', 'DESC']],

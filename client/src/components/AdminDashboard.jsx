@@ -12,9 +12,16 @@ function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [offers, setOffers] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [segments, setSegments] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [selectedSegment, setSelectedSegment] = useState(null);
+  const [segmentPrices, setSegmentPrices] = useState([]);
+  const [newSegment, setNewSegment] = useState({ name: '', description: '', priceMultiplier: '1.0' });
+  const [showNewSegmentForm, setShowNewSegmentForm] = useState(false);
+  const [newSegmentPrice, setNewSegmentPrice] = useState({ variantId: '', price: '' });
   const [statsLoading, setStatsLoading] = useState(true);
   const [editingOffer, setEditingOffer] = useState(null);
-  const [newOffer, setNewOffer] = useState({ code: '', discountType: 'percentage', discountValue: '', minOrderAmount: '', firstOrderOnly: false });
+  const [newOffer, setNewOffer] = useState({ code: '', discountType: 'percentage', discountValue: '', minOrderAmount: '', firstOrderOnly: false, targetBankCode: '' });
   const [showNewForm, setShowNewForm] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [editingStock, setEditingStock] = useState({}); // { [variantId]: newStockValue }
@@ -22,14 +29,18 @@ function AdminDashboard() {
   const loadAll = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const [statsRes, offersRes, inventoryRes] = await Promise.all([
+      const [statsRes, offersRes, inventoryRes, segmentsRes, usersRes] = await Promise.all([
         api.get('/admin/stats'),
         api.get('/admin/offers'),
         api.get('/admin/inventory'),
+        api.get('/admin/segments'),
+        api.get('/admin/users'),
       ]);
       setStats(statsRes.data.data);
       setOffers(offersRes.data.data);
       setInventory(inventoryRes.data.data);
+      setSegments(segmentsRes.data.data);
+      setUsers(usersRes.data.data);
       dispatch(fetchAllOrders());
     } catch (err) {
       toast.error('Failed to load admin data');
@@ -65,7 +76,7 @@ function AdminDashboard() {
       const res = await api.post('/admin/offers', body);
       setOffers((prev) => [res.data.data, ...prev]);
       setShowNewForm(false);
-      setNewOffer({ code: '', discountType: 'percentage', discountValue: '', minOrderAmount: '', firstOrderOnly: false });
+      setNewOffer({ code: '', discountType: 'percentage', discountValue: '', minOrderAmount: '', firstOrderOnly: false, targetBankCode: '' });
       toast.success('Coupon created!');
     } catch (err) {
       toast.error(err.response?.data?.error?.message || 'Create failed');
@@ -91,6 +102,84 @@ function AdminDashboard() {
 
   const totalRevenue = stats?.totalRevenue || 0;
 
+  const handleCreateSegment = async () => {
+    if (!newSegment.name.trim()) { toast.error('Segment name required'); return; }
+    try {
+      const discountPct = parseFloat(newSegment.priceMultiplier) || 0;
+      const multiplier = parseFloat((1 - discountPct / 100).toFixed(4));
+      const res = await api.post('/admin/segments', {
+        name: newSegment.name.toUpperCase(),
+        description: newSegment.description,
+        priceMultiplier: multiplier,
+      });
+      setSegments((prev) => [...prev, { ...res.data.data, users: [] }]);
+      setNewSegment({ name: '', description: '', priceMultiplier: '1.0' });
+      setShowNewSegmentForm(false);
+      toast.success('Segment created!');
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Create failed');
+    }
+  };
+
+  const handleSelectSegment = async (seg) => {
+    setSelectedSegment(seg);
+    setNewSegmentPrice({ variantId: '', price: '' });
+    try {
+      const res = await api.get(`/admin/segments/${seg.id}/prices`);
+      setSegmentPrices(res.data.data);
+    } catch {
+      toast.error('Failed to load segment prices');
+    }
+  };
+
+  const handleUpsertSegmentPrice = async () => {
+    if (!newSegmentPrice.variantId || !newSegmentPrice.price) { toast.error('Select a variant and enter price'); return; }
+    try {
+      const res = await api.post(`/admin/segments/${selectedSegment.id}/prices`, {
+        variantId: newSegmentPrice.variantId,
+        price: parseFloat(newSegmentPrice.price),
+      });
+      setSegmentPrices((prev) => {
+        const idx = prev.findIndex((p) => p.variantId === res.data.data.variantId);
+        if (idx >= 0) { const n = [...prev]; n[idx] = res.data.data; return n; }
+        return [...prev, res.data.data];
+      });
+      setNewSegmentPrice({ variantId: '', price: '' });
+      toast.success('Price saved!');
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Save failed');
+    }
+  };
+
+  const handleDeleteSegmentPrice = async (priceId) => {
+    try {
+      await api.delete(`/admin/segments/${selectedSegment.id}/prices/${priceId}`);
+      setSegmentPrices((prev) => prev.filter((p) => p.id !== priceId));
+      toast.success('Price override removed');
+    } catch {
+      toast.error('Delete failed');
+    }
+  };
+
+  const handleAssignUserSegment = async (userId, segmentId) => {
+    try {
+      await api.put(`/admin/users/${userId}/segment`, { segmentId: segmentId || null });
+      setUsers((prev) => prev.map((u) => {
+        if (u.id !== userId) return u;
+        const seg = segments.find((s) => s.id === segmentId) || null;
+        return { ...u, segmentId: segmentId || null, segment: seg ? { id: seg.id, name: seg.name } : null };
+      }));
+      toast.success('User segment updated');
+    } catch {
+      toast.error('Update failed');
+    }
+  };
+
+  // Flat list of all variants from inventory for segment price form
+  const allVariants = inventory.flatMap((p) =>
+    (p.variants || []).map((v) => ({ ...v, productName: p.name }))
+  );
+
   return (
     <div className="admin">
       <div className="admin__header">
@@ -100,13 +189,13 @@ function AdminDashboard() {
 
       {/* Tabs */}
       <div className="admin__tabs">
-        {['overview', 'coupons', 'inventory', 'orders'].map((tab) => (
+        {['overview', 'coupons', 'inventory', 'segments', 'orders'].map((tab) => (
           <button
             key={tab}
             className={`admin__tab ${activeTab === tab ? 'admin__tab--active' : ''}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab === 'overview' ? '📊 Overview' : tab === 'coupons' ? '🎟 Coupons' : tab === 'inventory' ? '📦 Inventory' : '🧾 Orders'}
+            {tab === 'overview' ? '📊 Overview' : tab === 'coupons' ? '🎟 Coupons' : tab === 'inventory' ? '📦 Inventory' : tab === 'segments' ? '🏷 Segments' : '🧾 Orders'}
           </button>
         ))}
       </div>
@@ -171,6 +260,16 @@ function AdminDashboard() {
                 </label>
                 <label>Min Order (₹)
                   <input type="number" value={newOffer.minOrderAmount} onChange={(e) => setNewOffer({ ...newOffer, minOrderAmount: e.target.value })} placeholder="0" />
+                </label>
+                <label>Target Bank (leave empty for all users)
+                  <select value={newOffer.targetBankCode} onChange={(e) => setNewOffer({ ...newOffer, targetBankCode: e.target.value })}>
+                    <option value="">All Banks / Universal</option>
+                    <option value="HDFC">HDFC</option>
+                    <option value="ICICI">ICICI</option>
+                    <option value="SBI">SBI</option>
+                    <option value="AXIS">AXIS</option>
+                    <option value="KOTAK">KOTAK</option>
+                  </select>
                 </label>
                 <label className="admin__form-checkbox">
                   <input type="checkbox" checked={newOffer.firstOrderOnly} onChange={(e) => setNewOffer({ ...newOffer, firstOrderOnly: e.target.checked })} />
@@ -311,6 +410,115 @@ function AdminDashboard() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* SEGMENTS TAB */}
+      {activeTab === 'segments' && (
+        <div className="admin__segments">
+          <div className="admin__segments-layout">
+
+            {/* Left — segment list + create */}
+            <div className="admin__segments-sidebar">
+              <div className="admin__section-header">
+                <h2>Pricing Segments</h2>
+                <button className="admin__btn admin__btn--primary" onClick={() => setShowNewSegmentForm((v) => !v)}>
+                  {showNewSegmentForm ? '✕ Cancel' : '+ New'}
+                </button>
+              </div>
+
+              {showNewSegmentForm && (
+                <div className="admin__new-offer" style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label>Name
+                      <input value={newSegment.name} onChange={(e) => setNewSegment({ ...newSegment, name: e.target.value.toUpperCase() })} placeholder="e.g. PREMIUM" />
+                    </label>
+                    <label>% Discount (e.g. 10 = 10% off)
+                      <input type="number" step="1" min="0" max="90" value={newSegment.priceMultiplier}
+                        onChange={(e) => setNewSegment({ ...newSegment, priceMultiplier: e.target.value })}
+                        placeholder="0 = no discount, 10 = 10% off" />
+                    </label>
+                    <label>Description
+                      <input value={newSegment.description} onChange={(e) => setNewSegment({ ...newSegment, description: e.target.value })} placeholder="Optional" />
+                    </label>
+                  </div>
+                  <button className="admin__btn admin__btn--success" style={{ marginTop: '0.75rem', width: '100%' }} onClick={handleCreateSegment}>Create Segment</button>
+                </div>
+              )}
+
+              <div className="admin__segment-list">
+                {segments.map((seg) => (
+                  <div
+                    key={seg.id}
+                    className={`admin__segment-card ${selectedSegment?.id === seg.id ? 'admin__segment-card--active' : ''}`}
+                    onClick={() => handleSelectSegment(seg)}
+                  >
+                    <div className="admin__segment-name">{seg.name}</div>
+                    <div className="admin__segment-meta">
+                      <span className="admin__tag">{seg.users?.length || 0} users</span>
+                      <span className="admin__tag" style={{ background: parseFloat(seg.priceMultiplier) < 1 ? '#dcfce7' : '#f1f5f9', color: parseFloat(seg.priceMultiplier) < 1 ? '#16a34a' : '#64748b' }}>
+                        {parseFloat(seg.priceMultiplier) < 1 ? `${Math.round((1 - parseFloat(seg.priceMultiplier)) * 100)}% off` : 'No discount'}
+                      </span>
+                    </div>
+                    {seg.description && <div className="admin__segment-desc">{seg.description}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — segment detail (prices + users) */}
+            {selectedSegment ? (
+              <div className="admin__segments-detail">
+                <h3>🏷 {selectedSegment.name}</h3>
+                <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '4px' }}>
+                  Global discount: <strong style={{ color: '#6366f1' }}>
+                    {selectedSegment.priceMultiplier < 1
+                      ? `${Math.round((1 - parseFloat(selectedSegment.priceMultiplier)) * 100)}% off all products`
+                      : 'No discount (×1.00)'}
+                  </strong>
+                  {' '}— applies automatically to every product variant for users in this segment.
+                </p>
+
+                {/* Users in segment */}
+                <div className="admin__section-header" style={{ marginTop: '1.5rem' }}>
+                  <h4>Users in this segment</h4>
+                </div>
+                <div className="admin__inv-variants">
+                  {users.filter((u) => u.segmentId === selectedSegment.id).length === 0 && (
+                    <p style={{ color: '#94a3b8', fontSize: '0.875rem', padding: '8px 0' }}>No users assigned yet.</p>
+                  )}
+                  {users.filter((u) => u.segmentId === selectedSegment.id).map((u) => (
+                    <div key={u.id} className="admin__inv-row">
+                      <span className="admin__inv-variant-name">{u.name}</span>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>{u.email}</span>
+                      {u.bankCode && <span className="admin__tag">{u.bankCode}</span>}
+                      <span className="admin__inv-actions">
+                        <button className="admin__btn admin__btn--xs admin__btn--danger" onClick={() => handleAssignUserSegment(u.id, null)}>Remove</button>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Assign user */}
+                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <select
+                    style={{ flex: 1, height: 38, borderRadius: 6, border: '1px solid #e2e8f0', padding: '0 0.5rem' }}
+                    defaultValue=""
+                    onChange={(e) => { if (e.target.value) handleAssignUserSegment(e.target.value, selectedSegment.id); e.target.value = ''; }}
+                  >
+                    <option value="">Assign user to {selectedSegment.name}…</option>
+                    {users.filter((u) => u.segmentId !== selectedSegment.id).map((u) => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.email}){u.segment ? ` — currently ${u.segment.name}` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <div className="admin__segments-detail" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                ← Select a segment to manage prices and users
+              </div>
+            )}
+          </div>
         </div>
       )}
 

@@ -5,8 +5,9 @@ const offerCtrl = require('../controllers/offerController');
 const authCtrl = require('../controllers/authController');
 const cartCtrl = require('../controllers/cartController');
 const adminCtrl = require('../controllers/adminController');
+const segmentCtrl = require('../controllers/segmentController');
 const validate = require('../middlewares/validate');
-const { authenticate, authorize } = require('../middlewares/auth');
+const { authenticate, authorize, optionalAuth } = require('../middlewares/auth');
 const {
   placeOrderSchema,
   validateOfferSchema,
@@ -31,7 +32,7 @@ router.post('/auth/login', validate(loginSchema), authCtrl.login);
 router.get('/auth/me', authenticate, authCtrl.me);
 
 // ── Products (public list, authenticated detail) ──
-router.get('/products', productCtrl.list);
+router.get('/products', optionalAuth, productCtrl.list);
 router.get('/products/:id', authenticate, productCtrl.getById);
 
 // ── Cart (authenticated) ──
@@ -60,5 +61,15 @@ router.put('/admin/variants/:id/stock', authenticate, authorize('admin'), adminC
 router.post('/admin/products', authenticate, authorize('admin'), validate(createProductSchema), productCtrl.create);
 router.post('/admin/offers', authenticate, authorize('admin'), validate(createOfferSchema), offerCtrl.create);
 router.post('/admin/customer-prices', authenticate, authorize('admin'), validate(setCustomerPriceSchema), offerCtrl.setCustomerPrice);
+
+// ── Segments (admin) ──
+router.get('/admin/segments', authenticate, authorize('admin'), segmentCtrl.listSegments);
+router.post('/admin/segments', authenticate, authorize('admin'), segmentCtrl.createSegment);
+router.put('/admin/segments/:id', authenticate, authorize('admin'), segmentCtrl.updateSegment);
+router.get('/admin/segments/:id/prices', authenticate, authorize('admin'), segmentCtrl.listSegmentPrices);
+router.post('/admin/segments/:id/prices', authenticate, authorize('admin'), segmentCtrl.upsertSegmentPrice);
+router.delete('/admin/segments/:id/prices/:priceId', authenticate, authorize('admin'), segmentCtrl.deleteSegmentPrice);
+router.get('/admin/users', authenticate, authorize('admin'), segmentCtrl.listUsers);
+router.put('/admin/users/:id/segment', authenticate, authorize('admin'), segmentCtrl.assignUserSegment);
 
 module.exports = router;

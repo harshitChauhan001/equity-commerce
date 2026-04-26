@@ -35,6 +35,13 @@ const User = sequelize.define(
       field: 'bank_code',
       comment: 'e.g. HDFC, ICICI, SBI, AXIS — used for bank-segment offers',
     },
+    segmentId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      defaultValue: null,
+      field: 'segment_id',
+      comment: 'Pricing segment this user belongs to',
+    },
   },
   {
     tableName: 'users',

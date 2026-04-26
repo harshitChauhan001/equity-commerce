@@ -3,17 +3,31 @@ const { resolvePrice } = require('../services/pricing/pricingEngine');
 const { ok, fail } = require('../utils/response');
 const config = require('../config');
 
-/**
- * GET /api/products
- */
 async function list(req, res, next) {
   try {
+    const customerId = req.user?.id || null;
+
     const products = await Product.findAll({
       where: { active: true },
       include: [{ association: 'variants', attributes: ['id', 'name', 'basePrice', 'stock', 'sku'] }],
       order: [['createdAt', 'DESC']],
     });
-    return ok(res, products);
+
+    const result = await Promise.all(
+      products.map(async (product) => {
+        const variants = await Promise.all(
+          product.variants.map(async (v) => {
+            const personalizedPrice = customerId
+              ? await resolvePrice({ variant: v, variantId: v.id, customerId })
+              : parseFloat(v.basePrice);
+            return { ...v.toJSON(), personalizedPrice };
+          })
+        );
+        return { ...product.toJSON(), variants };
+      })
+    );
+
+    return ok(res, result);
   } catch (err) {
     next(err);
   }

@@ -4,6 +4,7 @@ const logger = require('../../utils/logger');
 // Strategy registry
 const strategyMap = {
   customer_specific: require('./strategies/customerSpecific'),
+  segment_specific:  require('./strategies/segmentSpecific'),
   base: require('./strategies/base'),
 };
 

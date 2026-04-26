@@ -26,7 +26,7 @@ module.exports = {
   },
 
   pricing: {
-    strategies: (process.env.PRICING_STRATEGIES || 'customer_specific,base')
+    strategies: (process.env.PRICING_STRATEGIES || 'customer_specific,segment_specific,base')
       .split(',')
       .map((s) => s.trim()),
   },
